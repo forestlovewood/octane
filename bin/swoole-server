@@ -5,6 +5,9 @@ use Laravel\Octane\RequestContext;
 use Laravel\Octane\Swoole\Handlers\OnManagerStart;
 use Laravel\Octane\Swoole\Handlers\OnServerShutdown;
 use Laravel\Octane\Swoole\Handlers\OnServerStart;
+use Laravel\Octane\Swoole\Handlers\OnWebSocketClose;
+use Laravel\Octane\Swoole\Handlers\OnWebSocketHandshake;
+use Laravel\Octane\Swoole\Handlers\OnWebSocketMessage;
 use Laravel\Octane\Swoole\Handlers\OnWorkerStart;
 use Laravel\Octane\Swoole\ServerStateFile;
 use Laravel\Octane\Swoole\SwooleExtension;
@@ -14,7 +17,6 @@ use Swoole\WebSocket\Server;
 use Swoole\WebSocket\Frame;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
-use Swoole\Timer;
 
 ini_set('display_errors', 'stderr');
 
@@ -136,56 +138,9 @@ $server->on('request', function ($request, $response) use ($server, $workerState
 |
 */
 
-$server->on('handshake', function (Request $request, Response $response) use ($server, $workerState, $serverState) {
-    $secWebSocketKey = $request->header['sec-websocket-key'];
-    $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
-
-    if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
-        $response->end();
-        return false;
-    }
-
-    echo "received key: " . $request->header['sec-websocket-key'] . PHP_EOL;
-
-    $key = base64_encode(sha1($request->header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
-
-    $headers = [
-        'Upgrade' => 'websocket',
-        'Connection' => 'Upgrade',
-        'Sec-WebSocket-Accept' => $key,
-        'Sec-WebSocket-Version' => '13',
-    ];
-
-    // WebSocket connection to 'ws://127.0.0.1:9502/'
-    // failed: Error during WebSocket handshake:
-    // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
-    if (isset($request->header['sec-websocket-protocol'])) {
-        $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
-    }
-
-    foreach ($headers as $key => $val) {
-        $response->header($key, $val);
-    }
-
-    $response->status(101);
-    $response->end();
-    echo "handshake complete" . PHP_EOL;
-
-    $server->defer(function () use ($server, $request, $workerState, $serverState) {
-        echo "connection open: {$request->fd}\n";
-
-        $server->tick(1000, function($id) use ($server, $request) {
-            if ($server->exist($request->fd)) {
-                echo "pushing tick to: {$request->fd}\n";
-                $server->push($request->fd, json_encode(["tick", time()]));
-            } else {
-                $server->clearTimer($id);
-            }
-        });
-    });
-
-    return true;
-});
+$server->on('handshake', fn (Request $request, Response $response) => (new OnWebSocketHandshake(
+    $server, $serverState, $workerState
+))($request, $response));
 
 /*
 |--------------------------------------------------------------------------
@@ -196,10 +151,9 @@ $server->on('handshake', function (Request $request, Response $response) use ($s
 |
 */
 
-$server->on('message', function (Server $server, Frame $frame) use ($workerState, $serverState) {
-    echo "received message: {$frame->data}\n";
-    $server->push($frame->fd, json_encode(["message", time()]));
-});
+$server->on('message', fn (Server $server, Frame $frame) => (new OnWebSocketMessage(
+    $serverState, $workerState
+))($server, $frame));
 
 /*
 |--------------------------------------------------------------------------
@@ -210,9 +164,9 @@ $server->on('message', function (Server $server, Frame $frame) use ($workerState
 |
 */
 
-$server->on('close', function (Server $server, int $fd) use ($workerState, $serverState) {
-    echo "connection close: {$fd}\n";
-});
+$server->on('close', fn (Server $server, int $fd) => (new OnWebSocketClose(
+    $serverState, $workerState
+))($server, $fd));
 
 /*
 |--------------------------------------------------------------------------
