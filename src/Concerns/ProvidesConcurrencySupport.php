@@ -7,7 +7,7 @@ use Laravel\Octane\SequentialTaskDispatcher;
 use Laravel\Octane\Swoole\ServerStateFile;
 use Laravel\Octane\Swoole\SwooleHttpTaskDispatcher;
 use Laravel\Octane\Swoole\SwooleTaskDispatcher;
-use Swoole\Http\Server;
+use Swoole\WebSocket\Server;
 
 trait ProvidesConcurrencySupport
 {

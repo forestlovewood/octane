@@ -22,7 +22,7 @@ class OnServerStart
     /**
      * Handle the "start" Swoole event.
      *
-     * @param  \Swoole\Http\Server  $server
+     * @param  \Swoole\WebSocket\Server  $server
      * @return void
      */
     public function __invoke($server)

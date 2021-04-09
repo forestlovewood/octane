@@ -12,7 +12,7 @@ use Laravel\Octane\Swoole\SwooleTaskDispatcher;
 use Laravel\Octane\Swoole\TaskResult;
 use Mockery;
 use Orchestra\Testbench\TestCase;
-use Swoole\Http\Server;
+use Swoole\WebSocket\Server;
 
 class SwooleTaskDispatcherTest extends TestCase
 {

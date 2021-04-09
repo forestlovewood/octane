@@ -118,7 +118,8 @@ trait InteractsWithServers
 
         $this->output->writeln([
             '',
-            '  Local: <fg=white;options=bold>http://'.$this->option('host').':'.$this->option('port').' </>',
+            '  Local <fg=black;bg=cyan;options=bold> Http </>: <fg=white;options=bold>http://'.$this->option('host').':'.$this->option('port').' </>',
+            '  Local <fg=black;bg=cyan;options=bold> Ws </>:   <fg=white;options=bold>ws://'.$this->option('host').':'.$this->option('port').' </>',
             '',
             '  <fg=yellow>Press Ctrl+C to stop the server</>',
             '',

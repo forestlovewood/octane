@@ -4,7 +4,7 @@ namespace Laravel\Octane;
 
 use Exception;
 use Laravel\Octane\Swoole\WorkerState;
-use Swoole\Http\Server;
+use Swoole\WebSocket\Server;
 use Swoole\Table;
 use Throwable;
 
